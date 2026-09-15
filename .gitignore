@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+vinf-repos/
+.idea/
+CLAUDE.md
+
+# pipeline outputs
+data/
+checkpoints/
+*.pkl
