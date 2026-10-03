@@ -36,7 +36,7 @@ MAX_RETRIES = 3
 RAW_DIR = Path("data/raw")
 METADATA_FILE = Path("data/metadata.tsv")
 CHECKPOINT_FILE = Path("checkpoints/crawler.json")
-MAX_PAGES = 500  # test limit; set to None for the full crawl
+MAX_PAGES = None  # test limit; set to None for the full crawl
 
 
 def load_checkpoint() -> tuple[deque[str], set[str]]:
@@ -118,9 +118,11 @@ def crawl() -> None:
         if page_type == "classification":
             log_metadata(path, page_type, http_code, len(html), "")
             for featureless, link, rank in extract_links(html):
-                if rank == "Species" and featureless:
-                    log_metadata(link, "species_no_feature", "", 0, "")
-                    continue  # species without an account: nothing to download
+                if featureless:
+                    # "feature-less" = nothing (no account, pictures, sounds) in the whole
+                    # subtree, at any rank -> prune it without fetching
+                    log_metadata(link, f"pruned_{rank.lower()}", "", 0, "")
+                    continue
                 if rank == "Species":
                     link = link.removesuffix("classification/")
                 if link in seen:
