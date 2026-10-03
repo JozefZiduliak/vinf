@@ -17,3 +17,7 @@ CLAUDE.md
 data/
 checkpoints/
 *.pkl
+TODO.md
+crawl.log
+tmp/
+wiki.doku.txt

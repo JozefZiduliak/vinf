@@ -1,0 +1,32 @@
+flowchart TD
+    A([Start]) --> B{checkpoint<br/>exists?}
+    B -- yes --> C[load queue + seen<br/>crawler.json]
+    B -- no --> D[queue = Animalia/classification/<br/>seen = same]
+    C --> E[read robots.txt<br/>delay = Crawl-delay or 8 s]
+    D --> E
+    E --> F{queue<br/>empty?}
+    F -- yes --> Z([Done])
+    F -- no --> G[path = queue.popleft]
+    G --> H{robots.txt<br/>can_fetch?}
+    H -- no --> M[log_metadata: disallowed] --> F
+    H -- yes --> I[fetch: GET + headers<br/>timeout 15 s, 3 retries<br/>sleep delay]
+    I --> J{status}
+    J -- "302 / 404 / error" --> K[log_metadata: no account] --> S
+    J -- 200 --> L{URL ends with<br/>/classification/?}
+    L -- yes --> N[log_metadata: classification]
+    N --> O[extract_links: regex over HTML<br/>div class, href, rank]
+    O --> P{for each link}
+    P -- "feature-less<br/>any rank" --> Q[log_metadata: pruned_rank] --> P
+    P -- "rank == Species" --> R1[strip /classification/<br/>→ account URL]
+    P -- "other rank" --> R2[keep classification URL]
+    R1 --> T{in seen?}
+    R2 --> T
+    T -- yes --> P
+    T -- no --> U[seen.add]
+    U --> V{Species?}
+    V -- yes --> W[queue.appendleft<br/>accounts first] --> P
+    V -- no --> X[queue.append<br/>BFS] --> P
+    P -- done --> S
+    L -- no --> Y[save HTML → data/raw/slug.html<br/>log_metadata: species, file]
+    Y --> S[save_checkpoint<br/>queue + seen → tmp → os.replace]
+    S --> F

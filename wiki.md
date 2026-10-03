@@ -4,7 +4,7 @@
 
 Cieľom projektu je vyhľadávač živočíšnych druhov. Dáta získame crawlovaním Animal Diversity Web (animaldiversity.org), kde má každý z 2 150 druhov stránku s jednotnou šablónou. Z každej stránky regexom extrahujeme 5 atribútov (taxonómia, geografický rozsah, habitat, potrava, stav ohrozenia) a plný text opisu, nad tým postavíme vlastný invertovaný index a vyhľadávanie s TF-IDF. Používateľ zadá voľný text (napr. „nocturnal desert rodent") a dostane zoradený zoznam druhov s ich atribútmi. V druhej časti semestra záznamy spojíme cez vedecké meno s článkami z anglickej Wikipédie (Spark nad dumpom) a index prebudujeme v PyLucene.
 
-Motivácia: dáta o druhoch sú roztrúsené v dlhých textoch a na stránke sa dajú prehľadávať len cez taxonómiu alebo presné meno. Chceme sa pýtať na vlastnosti („mäsožravec v Afrike, ohrozený") a dostať druhy, ktoré im zodpovedajú.
+Motivácia: ADW má vlastné plnotextové vyhľadávanie, ale nevyužíva štruktúru stránok (štítky habitat, potrava, IUCN status, taxonómia). My tieto atribúty extrahujeme, indexujeme spolu s textom a dopĺňame o dáta z Wikipédie. Vyhľadávanie ADW nám poslúži ako referencia pri vyhodnotení výsledkov.
 
 ## Scrapované stránky
 

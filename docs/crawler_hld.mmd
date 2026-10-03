@@ -1,0 +1,21 @@
+flowchart TB
+    subgraph EXT["external: animaldiversity.org"]
+        ROBOTS["robots.txt<br/>Crawl-delay 8 s, Disallow list"]
+        WEB["web pages<br/>/accounts/&lt;Taxon&gt;/classification/<br/>/accounts/&lt;Genus_species&gt;/"]
+    end
+
+    subgraph SYS["vinf crawler  (uv run dev crawl)"]
+        C["Crawler worker<br/>1. can_fetch, sleep(delay)<br/>2. fetch HTML (GET, timeout 15 s, 3 retries)<br/>3. extract URLs (regex: path, rank, feature-less)<br/>4. save species account HTML"]
+        Q["Frontier Queue<br/>deque + seen set<br/>species first, taxa BFS"]
+        RAW[("data/raw/<br/>&lt;Genus_species&gt;.html")]
+        META[("data/metadata.tsv<br/>url, type, status,<br/>timestamp, size, file")]
+        CKPT[("checkpoints/crawler.json<br/>queue + seen")]
+    end
+
+    ROBOTS -->|"can_fetch? crawl_delay?"| C
+    WEB -->|"GET → 200 / 302 / 404"| C
+    Q -->|"next URL"| C
+    C -->|"new URLs<br/>(feature-less subtrees pruned)"| Q
+    C -->|"HTML (200 only)"| RAW
+    C -->|"one row per URL<br/>incl. pruned / 302 / errors"| META
+    Q -->|"save after each page<br/>load on start"| CKPT
