@@ -4,17 +4,16 @@ Reads:  nothing (start URL below)
 Writes: data/raw/<slug>.html, checkpoints/crawler.json
 """
 
+import csv
+import json
 import logging
 import os
 import re
 import time
 from collections import deque
-
-import os
-
-import json, csv
 from datetime import datetime
 from pathlib import Path
+from urllib.robotparser import RobotFileParser
 
 import requests
 
@@ -28,7 +27,9 @@ LINK_RE = re.compile(
 )
 # ------------------------------------------------------------
 
-USER_AGENT = "vinf-crawler/0.1 (FIIT STU student project; xziduliak@stuba.sk)"
+CONTACT_EMAIL = "xziduliak@stuba.sk"
+USER_AGENT = f"vinf-crawler/0.1 (FIIT STU student project; {CONTACT_EMAIL})"
+HEADERS = {"User-Agent": USER_AGENT, "From": CONTACT_EMAIL, "Accept": "text/html"}
 TIMEOUT = 15
 DELAY_SECONDS = 8
 MAX_RETRIES = 3
@@ -59,11 +60,11 @@ def extract_links(html: str) -> list[tuple[str, str]]:
     return list(dict.fromkeys(LINK_RE.findall(html)))
 
 
-def fetch(url: str) -> tuple[str | None, int]:
+def fetch(url: str, delay: float) -> tuple[str | None, int]:
 
     for attempt in range(MAX_RETRIES):
         try:
-            resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT, allow_redirects=False)
+            resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT, allow_redirects=False)
         except requests.RequestException as e:
             logging.warning("fetch %s failed (%d/%d): %s", url, attempt + 1, MAX_RETRIES, e)
         else:
@@ -75,7 +76,7 @@ def fetch(url: str) -> tuple[str | None, int]:
             logging.warning("fetch %s: HTTP %d (%d/%d)", url, resp.status_code, attempt + 1, MAX_RETRIES)
 
         finally:
-            time.sleep(DELAY_SECONDS)
+            time.sleep(delay)
     return None, 0
 
 def save(path: str, html: str) -> Path:
@@ -100,6 +101,10 @@ def crawl() -> None:
 
     queue, seen = load_checkpoint()
 
+    rp = RobotFileParser(BASE_URL + "/robots.txt")
+    rp.read()
+    delay = rp.crawl_delay(USER_AGENT) or DELAY_SECONDS
+    logging.info("robots.txt crawl-delay for %s: %s s", USER_AGENT, delay)
     n = 0
     while queue:
         if MAX_PAGES is not None and n >= MAX_PAGES:
@@ -107,8 +112,14 @@ def crawl() -> None:
             break
         n += 1
         path = queue.popleft()
+
+        if not rp.can_fetch(USER_AGENT, BASE_URL + path):
+            logging.info("robots.txt disallows %s, skipping", path)
+            log_metadata(path, "disallowed", "", 0, "")
+            continue
+
         logging.info("[%d] queue=%d %s", n, len(queue), path)
-        html, http_code = fetch(BASE_URL + path)
+        html, http_code = fetch(BASE_URL + path, delay)
         page_type = "classification" if path.endswith("classification/") else "species"
 
         if html is None:
