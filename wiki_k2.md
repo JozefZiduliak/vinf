@@ -5,7 +5,7 @@
 
 ## Frameworky a knižnice
 
-Python 3.14 (projekt deklaruje `requires-python >= 3.11`, aby bežal aj v PyLucene Docker image v 2. časti), spravovaný cez `uv`. V prvej časti zámerne bez hotových vyhľadávacích knižníc (Lucene, Whoosh, scikit-learn TF-IDF), index a vyhľadávanie píšeme sami podľa zadania.
+Python 3.14, projekt spravovaný cez `uv`. Deklarovaná spodná hranica je `requires-python >= 3.11`: kód nepoužíva nič novšie a nechávame rezervu pre prostredia v 2. časti (Docker image s PyLucene, prípadný Spark klaster). V prvej časti zámerne bez hotových vyhľadávacích knižníc (Lucene, Whoosh, scikit-learn TF-IDF), index a vyhľadávanie píšeme sami podľa zadania.
 
 | Knižnica | Použitie |
 |---|---|

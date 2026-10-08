@@ -24,3 +24,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 sources = ["src"]
 only-include = ["src/cli.py", "src/crawler.py", "src/parser.py", "src/index"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.10",
+]
