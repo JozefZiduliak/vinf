@@ -1,7 +1,10 @@
 """Stage 1.3 — build inverted index.
 
 Reads:  data/animals.jsonl
-Writes: data/index/index.json   {"stem": bool, "N": int, "doc_lengths": {...}, "postings": {term: {doc: tf}}}
+Writes: data/index/index.json
+  {"stem": bool, "N": int, "doc_lengths": {slug: int},
+   "postings": {term: {slug: tf}},          # the inverted index (searchable)
+   "docs": {slug: {name, order, family, status}}}  # stored fields (shown in results)
 """
 
 import json
@@ -36,6 +39,7 @@ def document_text(a: Animal) -> str:
 def build(use_stem: bool = False) -> dict:
     postings: dict[str, dict[str, int]] = defaultdict(dict)
     doc_lengths: dict[str, int] = {}
+    docs: dict[str, dict[str, str | None]] = {}
 
     with INPUT_FILE.open(encoding="utf-8") as f:
         for line in f:
@@ -44,12 +48,19 @@ def build(use_stem: bool = False) -> dict:
             doc_lengths[animal.slug] = len(tokens)
             for term, tf in Counter(tokens).items():
                 postings[term][animal.slug] = tf
+            docs[animal.slug] = {
+                "name": animal.common_name,
+                "order": animal.taxonomy.get("Order"),
+                "family": animal.taxonomy.get("Family"),
+                "status": animal.conservation_status,
+            }
 
     return {
         "stem": use_stem,
         "N": len(doc_lengths),
         "doc_lengths": doc_lengths,
         "postings": postings,
+        "docs": docs,
     }
 
 

@@ -11,7 +11,7 @@ import argparse
 import crawler
 import parser
 from index import builder
-from index.search import search
+from index.search import search, show
 
 
 def main() -> None:
@@ -26,6 +26,8 @@ def main() -> None:
     s.add_argument("query")
     s.add_argument("--top-k", type=int, default=10)
     s.add_argument("--idf", choices=["classic", "bm25"], default="classic")
+    d = sub.add_parser("show", help="print one parsed record by slug")
+    d.add_argument("slug")
 
     args = ap.parse_args()
     match args.mode:
@@ -37,7 +39,19 @@ def main() -> None:
             builder.main(args.stem)
         case "search":
             for r in search(args.query, args.top_k, args.idf):
-                print(f"{r.score:.4f}\t{r.doc_id}")
+                print(
+                    f"{r.score:.4f}  {r.doc_id:28s} {r.name or '-':26s} "
+                    f"{r.order}/{r.family:14s} {r.status or '-':22s} {', '.join(r.matched)}"
+                )
+        case "show":
+            a = show(args.slug)
+            if a is None:
+                print("not found")
+                return
+            for field, value in a.model_dump(exclude={"sections", "text"}).items():
+                print(f"{field:20s} {value}")
+            for sid, body in a.sections.items():
+                print(f"\n== {sid}\n{body}")
 
 
 if __name__ == "__main__":

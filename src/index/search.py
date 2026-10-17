@@ -15,13 +15,20 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from index.tokenizer import tokenize
+from parser import Animal
 
 INDEX_FILE = Path("data/index/index.json")
+ANIMALS_FILE = Path("data/animals.jsonl")
 
 
 class SearchResult(BaseModel):
     doc_id: str
     score: float
+    matched: list[str]  # query terms found in this doc
+    name: str | None = None
+    order: str | None = None
+    family: str | None = None
+    status: str | None = None
 
 
 def idf_classic(n: int, df: int) -> float:
@@ -47,6 +54,7 @@ def search(query: str, top_k: int = 10, idf: str = "classic") -> list[SearchResu
     idf_fn = IDF[idf]
 
     scores: dict[str, float] = defaultdict(float)
+    matched: dict[str, list[str]] = defaultdict(list)
     for term in tokenize(query, index["stem"]):
         plist = postings.get(term)
         if not plist:
@@ -54,6 +62,19 @@ def search(query: str, top_k: int = 10, idf: str = "classic") -> list[SearchResu
         w = idf_fn(n, len(plist))
         for doc, tf in plist.items():
             scores[doc] += tf / doc_lengths[doc] * w
+            matched[doc].append(term)
 
     ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:top_k]
-    return [SearchResult(doc_id=d, score=s) for d, s in ranked]
+    return [
+        SearchResult(doc_id=d, score=s, matched=matched[d], **index["docs"][d])
+        for d, s in ranked
+    ]
+
+
+def show(slug: str) -> Animal | None:
+    """Full record for one document, read from the parser output."""
+    with ANIMALS_FILE.open(encoding="utf-8") as f:
+        for line in f:
+            if line.startswith(f'{{"slug":"{slug}"'):
+                return Animal.model_validate_json(line)
+    return None
