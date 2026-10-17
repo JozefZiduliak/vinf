@@ -20,7 +20,10 @@ log = logging.getLogger(__name__)
 
 INPUT_FILE = Path("data/animals.jsonl")
 INDEX_DIR = Path("data/index")
-INDEX_FILE = INDEX_DIR / "index.json"
+
+
+def index_path(use_stem: bool) -> Path:
+    return INDEX_DIR / ("index_stem.json" if use_stem else "index.json")
 
 
 def document_text(a: Animal) -> str:
@@ -80,11 +83,12 @@ def main(use_stem: bool = False) -> None:
     )
 
     INDEX_DIR.mkdir(parents=True, exist_ok=True)
-    INDEX_FILE.write_text(json.dumps(index), encoding="utf-8")
+    path = index_path(use_stem)
+    path.write_text(json.dumps(index), encoding="utf-8")
     log.info(
         "saved %s (%.1f MB) in %.1fs total",
-        INDEX_FILE,
-        INDEX_FILE.stat().st_size / 1e6,
+        path,
+        path.stat().st_size / 1e6,
         time.time() - start,
     )
 

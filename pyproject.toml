@@ -10,6 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
     "requests",
     "pydantic",
+    "tiktoken>=0.14.0",
 ]
 
 
@@ -23,9 +24,14 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 sources = ["src"]
-only-include = ["src/cli.py", "src/crawler.py", "src/parser.py", "src/index"]
+only-include = ["src/cli.py", "src/crawler.py", "src/parser.py", "src/stats.py", "src/index"]
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.16.10",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

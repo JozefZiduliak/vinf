@@ -106,4 +106,55 @@ url	type	status	timestamp	size	file
 
 Ukážky stiahnutých stránok: `data/raw/Panthera_leo.html` (114 KB, 18 sekcií), `data/raw/Ornithorhynchus_anatinus.html`, `data/raw/Thelotornis_kirtlandii.html` (22 KB, najkratší účet, 12 sekcií).
 
-<!-- TODO pred publikovaním: GitHub link, obrázok diagramu -->
+
+---
+
+# K2b – Crawler, dáta, extraktor, indexer
+
+> Termín 28.10.2026. Detaily a všetky tabuľky sú v [[user:jozef.ziduliak:1.odovzdanie|1. odovzdaní]], tu je prehľad pre konzultáciu. Kód: https://github.com/JozefZiduliak/vinf , tag `v0.4.0`.
+
+## Dokončený crawler
+
+Stav z K2a, bez zmien v kóde. Celý taxonomický strom prejdený 28.09., retry pass 03.10., fronta v checkpointe prázdna. Spolu 16 557 requestov, 194 800 uzlov orezaných bez requestu cez `feature-less`.
+
+## Stiahnuté dáta a štatistika
+
+| | |
+|---|---|
+| účty druhov (HTTP 200) | 4 239 |
+| druhy bez účtu (HTTP 302) | 4 715 |
+| `data/raw/` na disku | 295,3 MB |
+| `data/animals.jsonl` po extrakcii | 81,3 MB |
+| slov v texte | 6 196 000 (medián 1 350 / dokument) |
+| IR tokenov po stop-slovách | 4 282 000 |
+| tiktoken tokenov (o200k_base) | 8 519 000 (medián 1 872 / dokument) |
+
+Relevantné sú všetky 4 239, crawler ukladá len účty druhov. Štatistiku generuje `uv run dev stats`.
+
+## Extraktor (regex) a ukážky
+
+`src/parser.py`, 6 regexov kotvených na šablónu ADW: vedecké meno (`<h1 class="rank--Species">`), bežný názov (`vernacular-name`), riadky klasifikačnej tabuľky (`rank-label` + `taxon-link`), IUCN kategória (`IUCN Red List` + `<dd><span>`), sekcie (`<h2 id="...">` až `</section>`, `re.DOTALL`) a štítky (`keywords-header` + `popover-replace`). Výstup je Pydantic model `Animal` do JSONL, celý korpus za 3,8 s.
+
+| Vedecké meno | Bežný názov | Rad / čeľaď | Rozsah | Potrava | IUCN |
+|---|---|---|---|---|---|
+| Panthera leo | lion | Carnivora / Felidae | palearctic, oriental, ethiopian | carnivore | Vulnerable |
+| Melopsittacus undulatus | budgerigar | Psittaciformes / Psittacidae | nearctic, australian | herbivore | Least Concern |
+| Ornithorhynchus anatinus | duck-billed platypus | Monotremata / Ornithorhynchidae | australian | carnivore | No special status |
+| Carcharodon carcharias | Great white shark | Lamniformes / Lamnidae | atlantic ocean, pacific ocean | carnivore | Vulnerable |
+| Apis mellifera | honey bee | Hymenoptera / Apidae | nearctic, palearctic, oriental, ... | herbivore | No special status |
+
+Pokrytie: taxonómia a text 100 %, rozsah 98,9 %, IUCN 97,6 %, habitat 94,4 %, bežný názov 84,9 %, potrava 83,1 %. Chýbajúce hodnoty chýbajú na stránke.
+
+## Vlastný indexer a 2 metódy IDF
+
+`src/index/`. Tokenizácia (`[a-z0-9]+`, lowercase, 60 stop-slov, voliteľný stemming) je jedna funkcia pre dokumenty aj dopyty. Index je invertovaný, `term → {dokument: tf}`, plus dĺžky dokumentov a `N`, uložený ako JSON (70 200 termov, 60 MB, stavba 1 s). Skóre je `Σ tf/len × idf`, IDF sa počíta pri dopyte, prepínač `--idf`:
+
+- classic `log(N/df)`,
+- bm25 `log((N − df + 0,5) / (df + 0,5))`, pre bežné termy záporné.
+
+Dopyt „hibernates during winter" (`during` je v 83 % dokumentov): classic dá na 2. miesto oriešok „winter wren", ktorý nehibernuje, len má „winter" 32× v texte. BM25 dá „during" váhu −1,60 a top 3 sú osa, žaba a syseľ, ktoré hibernujú. Pri dopytoch zo zriedkavých slov („lions in africa") sú výsledky oboch metód rovnaké. Tri dopyty s tabuľkami sú v 1. odovzdaní, sekcia 12.
+
+## Bonusy
+
+- `tests/test_parser.py`: 6 stránok so zlatým štandardom + 6 invariantov na 20 stránkach, `uv run pytest` = 126 passed. Testy odhalili, že hmyz nemá v tabuľke Phylum a salamandry Order.
+- tiktoken: 8 519 000 tokenov, v tabuľke vyššie.
