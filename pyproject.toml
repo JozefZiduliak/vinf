@@ -1,6 +1,6 @@
 [project]
 name = "vinf"
-version = "0.3.0"
+version = "0.4.0"
 description = "VINF semester project — custom search engine over animal records"
 readme = "README.md"
 authors = [
