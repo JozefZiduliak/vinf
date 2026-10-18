@@ -111,7 +111,7 @@ Ukážky stiahnutých stránok: `data/raw/Panthera_leo.html` (114 KB, 18 sekcií
 
 # K2b – Crawler, dáta, extraktor, indexer
 
-> Termín 28.10.2026. Detaily a všetky tabuľky sú v [[user:jozef.ziduliak:1.odovzdanie|1. odovzdaní]], tu je prehľad pre konzultáciu. Kód: https://github.com/JozefZiduliak/vinf , tag `v0.4.0`.
+> Termín 28.10.2026. Detaily a všetky tabuľky sú v [[user:jozef.ziduliak:1.odovzdanie|1. odovzdaní]], tu je prehľad pre konzultáciu. Kód: https://github.com/JozefZiduliak/vinf , tag `v0.4.1`.
 
 ## Dokončený crawler
 
@@ -133,17 +133,17 @@ Relevantné sú všetky 4 239, crawler ukladá len účty druhov. Štatistiku ge
 
 ## Extraktor (regex) a ukážky
 
-`src/parser.py`, 6 regexov kotvených na šablónu ADW: vedecké meno (`<h1 class="rank--Species">`), bežný názov (`vernacular-name`), riadky klasifikačnej tabuľky (`rank-label` + `taxon-link`), IUCN kategória (`IUCN Red List` + `<dd><span>`), sekcie (`<h2 id="...">` až `</section>`, `re.DOTALL`) a štítky (`keywords-header` + `popover-replace`). Výstup je Pydantic model `Animal` do JSONL, celý korpus za 3,8 s.
+`src/parser.py`, 6 regexov kotvených na šablónu ADW: vedecké meno (`<h1 class="rank--Species">`), bežný názov (`vernacular-name`), riadky klasifikačnej tabuľky (`rank-label` + `taxon-link`), IUCN kategória (`IUCN Red List` + `<dd>`), sekcie (`<h2 id="...">` až `</section>`, `re.DOTALL`) a štítky (`keywords-header` + odkaz do glosára alebo `<span>`). Výstup je Pydantic model `Animal` do JSONL, celý korpus za 3,8 s.
 
 | Vedecké meno | Bežný názov | Rad / čeľaď | Rozsah | Potrava | IUCN |
 |---|---|---|---|---|---|
 | Panthera leo | lion | Carnivora / Felidae | palearctic, oriental, ethiopian | carnivore | Vulnerable |
 | Melopsittacus undulatus | budgerigar | Psittaciformes / Psittacidae | nearctic, australian | herbivore | Least Concern |
 | Ornithorhynchus anatinus | duck-billed platypus | Monotremata / Ornithorhynchidae | australian | carnivore | No special status |
-| Carcharodon carcharias | Great white shark | Lamniformes / Lamnidae | atlantic ocean, pacific ocean | carnivore | Vulnerable |
+| Carcharodon carcharias | Great white shark | Lamniformes / Lamnidae | indian ocean, atlantic ocean, pacific ocean | carnivore | Vulnerable |
 | Apis mellifera | honey bee | Hymenoptera / Apidae | nearctic, palearctic, oriental, ... | herbivore | No special status |
 
-Pokrytie: taxonómia a text 100 %, rozsah 98,9 %, IUCN 97,6 %, habitat 94,4 %, bežný názov 84,9 %, potrava 83,1 %. Chýbajúce hodnoty chýbajú na stránke.
+Pokrytie: taxonómia a text 100 %, rozsah 99,0 %, IUCN 98,5 %, habitat 94,4 %, bežný názov 84,9 %, potrava 83,1 %. Chýbajúce hodnoty chýbajú na stránke (overené grepom surového HTML všetkých dokumentov bez hodnoty, detaily v 1. odovzdaní).
 
 ## Vlastný indexer a 2 metódy IDF
 

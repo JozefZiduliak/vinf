@@ -1,0 +1,10 @@
+flowchart LR
+    ADW[(animaldiversity.org)] -->|HTTP, 8 s delay| C[crawler.py]
+    C --> RAW[data/raw/*.html<br/>4 239 súborov, 295 MB]
+    C --> META[metadata.tsv<br/>checkpoint.json]
+    RAW --> P[parser.py<br/>regex]
+    P --> JSONL[animals.jsonl<br/>4 239 záznamov, 81 MB]
+    JSONL --> B[index/builder.py]
+    B --> IDX[index.json<br/>70 200 termov, 60 MB]
+    IDX --> S[index/search.py<br/>TF-IDF, 2× IDF]
+    Q([dopyt]) --> S --> R([zoradené výsledky])

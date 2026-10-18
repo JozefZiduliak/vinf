@@ -1,6 +1,6 @@
 # 1. Odovzdanie – Vyhľadávač živočíšnych druhov (Animal Diversity Web)
 
-> Termín 28.10.2026. DokuWiki: `user:jozef.ziduliak:1.odovzdanie`. Kód: https://github.com/JozefZiduliak/vinf (tag `v0.4.0`).
+> Termín 28.10.2026. DokuWiki: `user:jozef.ziduliak:1.odovzdanie`. Kód: https://github.com/JozefZiduliak/vinf (tag `v0.4.1`).
 
 ## 1. Opis projektu a cieľ
 
@@ -38,7 +38,7 @@ Päť ukážok z `data/animals.jsonl`:
 | Panthera leo | lion | Mammalia / Carnivora / Felidae | palearctic, oriental, ethiopian | temperate, tropical, terrestrial, savanna or grassland | carnivore | Vulnerable | 3 417 |
 | Melopsittacus undulatus | budgerigar | Aves / Psittaciformes / Psittacidae | nearctic, australian | savanna or grassland, forest | herbivore | Least Concern | 997 |
 | Ornithorhynchus anatinus | duck-billed platypus | Mammalia / Monotremata / Ornithorhynchidae | australian | temperate, tropical, terrestrial, freshwater | carnivore | No special status | 1 281 |
-| Carcharodon carcharias | Great white shark | Chondrichthyes / Lamniformes / Lamnidae | atlantic ocean, pacific ocean | temperate, tropical, saltwater or marine | carnivore | Vulnerable | 2 118 |
+| Carcharodon carcharias | Great white shark | Chondrichthyes / Lamniformes / Lamnidae | indian ocean, atlantic ocean, pacific ocean | temperate, tropical, saltwater or marine | carnivore | Vulnerable | 2 118 |
 | Apis mellifera | honey bee | Insecta / Hymenoptera / Apidae | nearctic, palearctic, oriental, ethiopian, neotropical, australian | temperate, tropical, terrestrial, desert or dune | herbivore | No special status | 4 424 |
 
 Jeden záznam v JSONL (skrátený):
@@ -59,13 +59,13 @@ Pokrytie atribútov na celom korpuse (4 239 dokumentov):
 |---|---|---|
 | taxonómia | 4 239 | 100 % |
 | plný text | 4 239 | 100 % |
-| geografický rozsah | 4 192 | 98,9 % |
-| IUCN status | 4 137 | 97,6 % |
+| geografický rozsah | 4 198 | 99,0 % |
+| IUCN status | 4 177 | 98,5 % |
 | habitat | 4 001 | 94,4 % |
 | bežný názov | 3 597 | 84,9 % |
 | potrava | 3 523 | 83,1 % |
 
-Chýbajúce hodnoty sú chýbajúce na stránke, nie chyba regexu (overené na vzorke ručne). Rozdelenie IUCN: Least Concern 2 104, No special status 455, Not Evaluated 384, Vulnerable 316, Endangered 244, Near Threatened 239, Critically Endangered 149, Data Deficient 133, staré kategórie Lower Risk 90, Extinct 23.
+Chýbajúce hodnoty som overil systematicky, nie na vzorke: pre každý atribút som vzal všetky dokumenty bez hodnoty a v ich surovom HTML hľadal značku, z ktorej regex ťahá. Kontrola odhalila dva varianty šablóny, ktoré regexy nepoznali, a opravil som ich: status `Not Evaluated` je na 40 stranách v `<dd>` bez `<span>` a tagy bez hesla v glosári (indian ocean, mediterranean sea, icecap) sú obyčajný `<span>` namiesto odkazu. Zvyšné chýbajúce hodnoty na stránke naozaj nie sú (napr. 62 strán nemá sekciu Conservation Status vôbec). Rozdelenie IUCN: Least Concern 2 104, No special status 455, Not Evaluated 424, Vulnerable 316, Endangered 244, Near Threatened 239, Critically Endangered 149, Data Deficient 133, staré kategórie Lower Risk 90, Extinct 23.
 
 ## 3. Príklady dopytov a odpovedí
 
@@ -174,7 +174,10 @@ TAXONOMY_RE = re.compile(
     r'<span class="rank-label">\s*(\w+)\s*</span>\s*</td>\s*<td>\s*'
     r'<a class="taxon-link rank--\w+" href="[^"]+">\s*([^<]+?)\s*</a>'
 )
-IUCN_RE = re.compile(r'IUCN Red List\s*</a>\s*</dt>\s*<dd>\s*<span>\s*([^<]+?)\s*</span>')
+# two markups: <dd><span>Vulnerable</span> on most pages, <dd>Not Evaluated</dd> on ~40
+IUCN_RE = re.compile(
+    r'IUCN Red List.{0,200}?</dt>\s*<dd>\s*(?:<span>\s*)?([^<]+?)\s*<', re.DOTALL
+)
 
 # text sections: <section><h2 id="food_habits">...</h2> body </section>
 SECTION_RE = re.compile(r'<h2 id="(\w+)">.*?</h2>(.*?)</section>', re.DOTALL)
@@ -185,7 +188,10 @@ TAG_BLOCK_RE = re.compile(
     r'<li class="keywords-header">\s*([^<]+?)\s*</li>(.*?)(?=<li class="keywords-header">|</section>)',
     re.DOTALL,
 )
-TAG_ITEM_RE = re.compile(r'popover-replace" href="[^"]+">\s*([^<]+?)\s*</a>')
+# tags with a glossary entry are links, tags without one are plain <span>s
+TAG_ITEM_RE = re.compile(
+    r'(?:popover-replace" href="[^"]+"|<span)>\s*([^<]+?)\s*</(?:a|span)>'
+)
 
 
 def parse_animal(html: str, slug: str) -> Animal:
@@ -323,7 +329,7 @@ Rovnaké poradie, skóre sa líši o 2 %. Pri zriedkavých termoch sú oba vzorc
 | 1 | 0,0088 Rhinoderma darwinii (native, carnivore) | 0,0006 Lagenorhynchus albirostris, white-beaked dolphin (carnivore) |
 | 2 | 0,0084 Amorphochilus schnablii, smoky bat (native, carnivore) | 0,0006 Sinea diadema, spined assassin bug (carnivore) |
 | 3 | 0,0077 Catopuma badia, bay cat (native, carnivore) | 0,0005 Gasterophilus intestinalis (carnivore) |
-| 4 | 0,0068 Choerodon fasciatus, Harlequin tuskfish (native, carnivore) | 0,0005 Strongylus vulgaris (carnivore) |
+| 4 | 0,0067 Choerodon fasciatus, Harlequin tuskfish (native, carnivore) | 0,0005 Strongylus vulgaris (carnivore) |
 | 5 | 0,0064 Lagenodelphis hosei, Fraser's dolphin (native, carnivore) | 0,0005 Trichuris trichiura (carnivore) |
 
 Úplne iné výsledky. Classic dá „native" malú kladnú váhu (0,03), takže vyhrávajú krátke dokumenty, kde sa „native" opakuje. BM25 mu dá −3,34, každý dokument s „native" ide do mínusu a top 5 tvoria dokumenty, ktoré majú len „carnivore". Ani jedno nie je dobrá odpoveď, ale bm25 sa správa ako stop-list: bežné slovo ignoruje, resp. trestá.
@@ -357,12 +363,12 @@ V classic vyhral oriešok: 32 výskytov bežného „winter" prebilo jeden výsk
 
 Rovnaký výpočet skóre (classic IDF), ale dopyty bežia nad druhým indexom, kde boli dokumenty aj dopyt stemované (`--stem`):
 
-| Dopyt | Bez stemmingu | So stemmingom |
+| Dopyt | Bez stemmingu (poradie: dokument) | So stemmingom |
 |---|---|---|
-| lions in africa | lev 0,150, uškatce 0,127 | lev 0,168, uškatce 0,129; „lion" a „lions" sú jeden term, lev získal viac |
-| hibernates during winter | 1. osa, 2. winter wren | 1. winter wren, 2. osa; termy „hibernat", „dur" (stemmer odrezal „ing" z „during", ktoré nie je sloveso) |
-| nocturnal desert rodent | 2. Gopherus agassizii (desert) | 2. Gopherus agassizii (desert, rodent); „rodents" → „rodent" pridalo zhodu |
-| australia parrot popular pet | andulka 6. | andulka 16.; „parrots" → „parrot" zvýhodnilo amazoňany, ktoré o papagájoch píšu všeobecne |
+| lions in africa | 1. lev (0,150), 2. uškatec (0,127) | 1. lev (0,168), 2. uškatec (0,129); poradie rovnaké, „lion" a „lions" sú jeden term, lev získal viac |
+| hibernates during winter | 1. osa, 2. oriešok (winter wren) | 1. oriešok, 2. osa; termy „hibernat", „dur" (stemmer odrezal „ing" z „during", ktoré nie je sloveso) |
+| nocturnal desert rodent | 2. púštna korytnačka (zhoda: desert) | 2. púštna korytnačka (zhoda: desert, rodent); „rodents" → „rodent" pridalo zhodu, ale falošnú: hlodavce sú v texte ako nájomníci jej nory |
+| australia parrot popular pet | 6. andulka | 16. andulka; „parrots" → „parrot" zvýhodnilo amazoňany, ktoré o papagájoch píšu všeobecne |
 
 Naivný stemmer pomôže pri množnom čísle (lion/lions, rodent/rodents), ale nemá výnimky, takže „during" → „dur" a „hibernates" → „hibernat". Pre report nechávame default bez stemmingu; Porter stemmer by bol ďalší krok.
 
@@ -393,7 +399,7 @@ Oficiálna stránka ADW uvádza 2 150 účtov, údaj nezmenený od roku 2014. Re
 
 ## 14. ZIP s kódom
 
-{{user:jozef.ziduliak:vinf-v0.4.0.zip}} (bez dát, `git archive` tagu `v0.4.0`). Repozitár: https://github.com/JozefZiduliak/vinf
+{{user:jozef.ziduliak:vinf-v0.4.1.zip}} (bez dát, `git archive` tagu `v0.4.1`). Repozitár: https://github.com/JozefZiduliak/vinf
 
 ## Bonus: unit testy regex extraktorov
 

@@ -31,8 +31,10 @@ TAXONOMY_RE = re.compile(
 )
 
 
+# Two markups on ADW: "IUCN Red List</a></dt><dd><span>Vulnerable</span>" on most
+# pages, "IUCN Red List <a>[Link]</a></dt><dd>Not Evaluated</dd>" on ~40 pages.
 IUCN_RE = re.compile(
-    r"IUCN Red List\s*</a>\s*</dt>\s*<dd>\s*<span>\s*([^<]+?)\s*</span>"
+    r"IUCN Red List.{0,200}?</dt>\s*<dd>\s*(?:<span>\s*)?([^<]+?)\s*<", re.DOTALL
 )
 
 
@@ -45,7 +47,11 @@ TAG_BLOCK_RE = re.compile(
     r'<li class="keywords-header">\s*([^<]+?)\s*</li>(.*?)(?=<li class="keywords-header">|</section>)',
     re.DOTALL,
 )
-TAG_ITEM_RE = re.compile(r'popover-replace" href="[^"]+">\s*([^<]+?)\s*</a>')
+# Tags with a glossary entry are links, tags without one (e.g. "indian ocean",
+# "icecap") are plain <span>s. Match both.
+TAG_ITEM_RE = re.compile(
+    r'(?:popover-replace" href="[^"]+"|<span)>\s*([^<]+?)\s*</(?:a|span)>'
+)
 
 NESTED_UL_RE = re.compile(r"<ul>.*?</ul>", re.DOTALL)
 

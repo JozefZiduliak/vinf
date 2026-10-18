@@ -57,7 +57,7 @@ GOLD = {
         "order": "Lamniformes",
         "family": "Lamnidae",
         "diet": ["carnivore"],
-        "range": ["atlantic ocean", "pacific ocean"],
+        "range": ["indian ocean", "atlantic ocean", "pacific ocean"],
     },
     "Ornithorhynchus_anatinus": {
         "scientific_name": "Ornithorhynchus anatinus",
