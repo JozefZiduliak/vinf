@@ -1,31 +1,28 @@
 """Stage 1.3 — build inverted index.
 
 Reads:  data/animals.jsonl
-Writes: data/index/index.json
+Writes: data/index/plain/ or data/index/stem/, format in index/storage.py.
+
+build() returns everything in memory first:
   {"stem": bool, "N": int, "doc_lengths": {slug: int},
    "doc_norms": {"raw": {slug: float}, "log": {slug: float}},  # Euclidean length of tf vector
    "postings": {term: {slug: tf}},          # the inverted index (searchable)
    "docs": {slug: {name, order, family, status}}}  # stored fields (shown in results)
 """
 
-import json
 import logging
 import math
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from index.storage import index_dir, write_index
 from index.tokenizer import tokenize
 from parser import Animal
 
 log = logging.getLogger(__name__)
 
 INPUT_FILE = Path("data/animals.jsonl")
-INDEX_DIR = Path("data/index")
-
-
-def index_path(use_stem: bool) -> Path:
-    return INDEX_DIR / ("index_stem.json" if use_stem else "index.json")
 
 
 def document_text(a: Animal) -> str:
@@ -94,14 +91,11 @@ def main(use_stem: bool = False) -> None:
         use_stem,
     )
 
-    INDEX_DIR.mkdir(parents=True, exist_ok=True)
-    path = index_path(use_stem)
-    path.write_text(json.dumps(index), encoding="utf-8")
+    directory = index_dir(use_stem)
+    write_index(index, directory)
+    size = sum(f.stat().st_size for f in directory.iterdir())
     log.info(
-        "saved %s (%.1f MB) in %.1fs total",
-        path,
-        path.stat().st_size / 1e6,
-        time.time() - start,
+        "saved %s (%.1f MB) in %.1fs total", directory, size / 1e6, time.time() - start
     )
 
 

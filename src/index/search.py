@@ -18,7 +18,6 @@ Document length normalizations (what the TF weight is divided by):
 Stemmed and unstemmed indexes are separate files; --stem picks which one to load.
 """
 
-import json
 import math
 from collections import defaultdict
 from functools import cache
@@ -26,7 +25,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from index.builder import index_path
+from index import storage
 from index.tokenizer import tokenize
 from parser import Animal
 
@@ -91,8 +90,8 @@ NORM = {"none": norm_none, "len": norm_len, "cosine": norm_cosine, "pivot": norm
 @cache
 def load_index(use_stem: bool = False) -> dict:
     """Read once per process; every search() call reuses it."""
-    index = json.loads(index_path(use_stem).read_text(encoding="utf-8"))
-    index["avg_len"] = sum(index["doc_lengths"].values()) / index["N"]
+    index = storage.load_index(storage.index_dir(use_stem))
+    index["stem"] = use_stem
     return index
 
 
