@@ -3,12 +3,14 @@
 Reads:  data/animals.jsonl
 Writes: data/index/index.json
   {"stem": bool, "N": int, "doc_lengths": {slug: int},
+   "doc_norms": {"raw": {slug: float}, "log": {slug: float}},  # Euclidean length of tf vector
    "postings": {term: {slug: tf}},          # the inverted index (searchable)
    "docs": {slug: {name, order, family, status}}}  # stored fields (shown in results)
 """
 
 import json
 import logging
+import math
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -42,6 +44,7 @@ def document_text(a: Animal) -> str:
 def build(use_stem: bool = False) -> dict:
     postings: dict[str, dict[str, int]] = defaultdict(dict)
     doc_lengths: dict[str, int] = {}
+    doc_norms: dict[str, dict[str, float]] = {"raw": {}, "log": {}}
     docs: dict[str, dict[str, str | None]] = {}
 
     with INPUT_FILE.open(encoding="utf-8") as f:
@@ -49,8 +52,16 @@ def build(use_stem: bool = False) -> dict:
             animal = Animal.model_validate_json(line)
             tokens = tokenize(document_text(animal), use_stem)
             doc_lengths[animal.slug] = len(tokens)
-            for term, tf in Counter(tokens).items():
+            counts = Counter(tokens)
+            for term, tf in counts.items():
                 postings[term][animal.slug] = tf
+            # vector lengths for cosine normalization, one per TF weighting
+            doc_norms["raw"][animal.slug] = math.sqrt(
+                sum(tf * tf for tf in counts.values())
+            )
+            doc_norms["log"][animal.slug] = math.sqrt(
+                sum((1 + math.log(tf)) ** 2 for tf in counts.values())
+            )
             docs[animal.slug] = {
                 "name": animal.common_name,
                 "order": animal.taxonomy.get("Order"),
@@ -62,6 +73,7 @@ def build(use_stem: bool = False) -> dict:
         "stem": use_stem,
         "N": len(doc_lengths),
         "doc_lengths": doc_lengths,
+        "doc_norms": doc_norms,
         "postings": postings,
         "docs": docs,
     }

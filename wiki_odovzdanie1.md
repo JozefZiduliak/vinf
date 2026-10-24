@@ -403,7 +403,7 @@ Oficiálna stránka ADW uvádza 2 150 účtov, údaj nezmenený od roku 2014. Re
 
 ## Bonus: unit testy regex extraktorov
 
-Súbor: {{user:jozef.ziduliak:test_parser.py}} (https://github.com/JozefZiduliak/vinf/blob/main/tests/test_parser.py). Spúšťanie `uv run pytest`, výsledok **126 passed za 0,1 s**.
+Súbor `tests/test_parser.py` v ZIPe zo sekcie 14 (wiki nepovoľuje prílohy `.py`), online https://github.com/JozefZiduliak/vinf/blob/v0.4.1/tests/test_parser.py . Spúšťanie `uv run pytest`, výsledok **126 passed za 0,1 s**.
 
 Testy bežia nad 20 stiahnutými stránkami naprieč triedami (cicavce, vtáky, ryby, hmyz, obojživelníky, plazy). Dva druhy testov:
 
