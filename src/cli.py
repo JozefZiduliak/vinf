@@ -26,8 +26,11 @@ def main() -> None:
     s = sub.add_parser("search", help="stage 1.4: query the index")
     s.add_argument("query")
     s.add_argument("--top-k", type=int, default=10)
-    s.add_argument("--idf", choices=["classic", "bm25"], default="classic")
+    s.add_argument(
+        "--idf", choices=["classic", "smooth", "unary", "bm25"], default="classic"
+    )
     s.add_argument("--tf", choices=["raw", "log"], default="raw")
+    s.add_argument("--norm", choices=["none", "len", "cosine", "pivot"], default="len")
     s.add_argument("--stem", action="store_true", help="use the stemmed index")
     sub.add_parser("stats", help="corpus statistics for the report")
     d = sub.add_parser("show", help="print one parsed record by slug")
@@ -42,7 +45,9 @@ def main() -> None:
         case "build-index":
             builder.main(args.stem)
         case "search":
-            for r in search(args.query, args.top_k, args.idf, args.tf, args.stem):
+            for r in search(
+                args.query, args.top_k, args.idf, args.tf, args.norm, args.stem
+            ):
                 print(
                     f"{r.score:.4f}  {r.doc_id:28s} {r.name or '-':26s} "
                     f"{r.order}/{r.family:14s} {r.status or '-':22s} {', '.join(r.matched)}"
