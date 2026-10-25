@@ -5,6 +5,6 @@ flowchart LR
     RAW --> P[parser.py<br/>regex]
     P --> JSONL[animals.jsonl<br/>4 239 záznamov, 81 MB]
     JSONL --> B[index/builder.py]
-    B --> IDX[index.json<br/>70 200 termov, 60 MB]
-    IDX --> S[index/search.py<br/>TF-IDF, 2× IDF]
+    B --> IDX[data/index/<br/>docs.tsv, terms.tsv, postings.bin<br/>70 200 termov, 16 MB]
+    IDX --> S[index/search.py<br/>TF-IDF, 4× IDF, 4× normalizácia]
     Q([dopyt]) --> S --> R([zoradené výsledky])
