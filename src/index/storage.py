@@ -1,6 +1,7 @@
 import csv
 import struct
 from pathlib import Path
+from typing import BinaryIO
 
 INDEX_DIR = Path("data/index")
 POSTING = struct.Struct("<IH")
@@ -8,8 +9,7 @@ STORED = ("name", "order", "family", "status")
 
 
 def index_dir(use_stem: bool) -> Path:
-    return INDEX_DIR / "stem"  if use_stem else INDEX_DIR / "plain"
-
+    return INDEX_DIR / "stem" if use_stem else INDEX_DIR / "plain"
 
 
 def write_index(index: dict, directory: Path) -> None:
@@ -71,3 +71,13 @@ def load_index(directory: Path) -> dict:
         "avg_len": sum(lengths) / len(rows),
         "postings_path": directory / "postings.bin",
     }
+
+
+def read_postings(f: BinaryIO, terms: dict, term: str) -> list[tuple[int, int]]:
+    """(doc_id, tf) pairs of one term; [] when the term is not in the dictionary."""
+    hit = terms.get(term)
+    if hit is None:
+        return []
+    df, offset = hit
+    f.seek(offset)
+    return list(POSTING.iter_unpack(f.read(df * POSTING.size)))
