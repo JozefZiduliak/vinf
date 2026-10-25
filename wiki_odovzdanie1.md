@@ -19,7 +19,7 @@ flowchart LR
     P --> JSONL[animals.jsonl<br/>4 239 záznamov, 81 MB]
     JSONL --> B[index/builder.py]
     B --> IDX[index/<br/>docs.tsv, terms.tsv, postings.bin<br/>70 200 termov, 16 MB]
-    IDX --> S[index/search.py<br/>TF-IDF, 2× IDF]
+    IDX --> S[index/search.py<br/>TF-IDF, 4× IDF, 4× normalizácia]
     Q([dopyt]) --> S --> R([zoradené výsledky])
 ```
 
@@ -284,7 +284,7 @@ f.seek(offset)
 pairs = POSTING.iter_unpack(f.read(df * POSTING.size))
 ```
 
-Prečo tri súbory a nie JSON: JSON sa musí pri štarte prečítať a rozparsovať celý, aj keď dopyt použije tri termy zo 70 200. Binárny súbor s pevnou dĺžkou záznamu dovoľuje skočiť na offset termu a prečítať len jeho zoznam. Slug je v indexe raz (v `docs.tsv`), v zoznamoch je len číslo riadku. Rovnaké rozdelenie má Lucene: slovník termov zvlášť, zoznamy dokumentov zvlášť. Namerané na tom istom korpuse:
+Prečo tri súbory a nie JSON: JSON sa musí pri štarte prečítať a rozparsovať celý, aj keď dopyt použije tri termy zo 70 200. Binárny súbor s pevnou dĺžkou záznamu dovoľuje skočiť na offset termu a prečítať len jeho zoznam. Slug je v indexe raz (v `docs.tsv`), v zoznamoch je len číslo riadku. Namerané na tom istom korpuse:
 
 | | JSON (v0.4.1) | TSV + binárne zoznamy (v0.5.0) |
 |---|---|---|
@@ -294,8 +294,6 @@ Prečo tri súbory a nie JSON: JSON sa musí pri štarte prečítať a rozparsov
 | pamäť po načítaní | 234 MB | 53 MB |
 | čas stavby a zápisu | 1,0 s | 1,4 s |
 | poradie výsledkov | | rovnaké pri všetkých dopytoch v sekcii 12 |
-
-Kontrola formátu: 2 310 169 párov × 6 bajtov = 13 861 014 bajtov, presne veľkosť `postings.bin`. Pri 4 239 dokumentoch je rozdiel v rýchlosti malý; formát je navrhnutý tak, aby pri väčšom korpuse (Wikipedia v druhej časti) pamäť rástla so slovníkom, nie so zoznamami.
 
 | | bez stemmingu | so stemmingom |
 |---|---|---|

@@ -20,7 +20,7 @@ checkpoints/
 TODO.md
 crawl.log
 tmp/
-wiki.doku.txt
+*.doku.txt
 .DS_Store
 *.zip
 *.pdf
