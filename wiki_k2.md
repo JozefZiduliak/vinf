@@ -111,7 +111,7 @@ Ukážky stiahnutých stránok: `data/raw/Panthera_leo.html` (114 KB, 18 sekcií
 
 # K2b – Crawler, dáta, extraktor, indexer
 
-> Termín 28.10.2026. Detaily a všetky tabuľky sú v [[user:jozef.ziduliak:1.odovzdanie|1. odovzdaní]], tu je prehľad pre konzultáciu. Kód: https://github.com/JozefZiduliak/vinf , tag `v0.4.1`.
+> Termín 28.10.2026. Detaily a všetky tabuľky sú v [[user:jozef.ziduliak:1.odovzdanie|1. odovzdaní]], tu je prehľad pre konzultáciu. Kód: https://github.com/JozefZiduliak/vinf , tag `v0.5.0`.
 
 ## Dokončený crawler
 
@@ -145,16 +145,21 @@ Relevantné sú všetky 4 239, crawler ukladá len účty druhov. Štatistiku ge
 
 Pokrytie: taxonómia a text 100 %, rozsah 99,0 %, IUCN 98,5 %, habitat 94,4 %, bežný názov 84,9 %, potrava 83,1 %. Chýbajúce hodnoty chýbajú na stránke (overené grepom surového HTML všetkých dokumentov bez hodnoty, detaily v 1. odovzdaní).
 
-## Vlastný indexer a 2 metódy IDF
+## Vlastný indexer, IDF a normalizácia dĺžky
 
-`src/index/`. Tokenizácia (`[a-z0-9]+`, lowercase, 60 stop-slov, voliteľný stemming) je jedna funkcia pre dokumenty aj dopyty. Index je invertovaný, `term → {dokument: tf}`, plus dĺžky dokumentov a `N`, uložený ako JSON (70 200 termov, 60 MB, stavba 1 s). Skóre je `Σ tf/len × idf`, IDF sa počíta pri dopyte, prepínač `--idf`:
+`src/index/`. Tokenizácia (`[a-z0-9]+`, lowercase, 60 stop-slov, voliteľný stemming) je jedna funkcia pre dokumenty aj dopyty. Index je invertovaný, `term → {dokument: tf}`, 70 200 termov, stavba 1,4 s.
 
-- classic `log(N/df)`,
-- bm25 `log((N − df + 0,5) / (df + 0,5))`, pre bežné termy záporné.
+**Formát indexu (zmena po K2b).** Prvá verzia bola jeden JSON (60 MB, 234 MB v pamäti). Teraz tri súbory: `docs.tsv` (riadok na dokument: slug, dĺžka, normy, polia pre výpis), `terms.tsv` (term, df, offset) a `postings.bin` (pre každý term `df` záznamov po 6 bajtoch: id dokumentu, tf). Pri štarte sa načítajú len TSV, zoznamy sa čítajú z disku cez `seek(offset)` len pre termy dopytu. Výsledok: 15,6 MB na disku, 53 MB v pamäti, načítanie 0,04 s namiesto 0,23 s, rovnaké poradie výsledkov.
 
-Dopyt „hibernates during winter" (`during` je v 83 % dokumentov): classic dá na 2. miesto oriešok „winter wren", ktorý nehibernuje, len má „winter" 32× v texte. BM25 dá „during" váhu −1,60 a top 3 sú osa, žaba a syseľ, ktoré hibernujú. Pri dopytoch zo zriedkavých slov („lions in africa") sú výsledky oboch metód rovnaké. Tri dopyty s tabuľkami sú v 1. odovzdaní, sekcia 12.
+**Skóre** `Σ_t w_tf(tf) / norm(d) × idf(t)`, každá časť má prepínač:
+
+- `--idf`: classic `log(N/df)`, smooth `1 + log(N/(1+df))` (klasická Lucene), unary `1` (kontrola bez IDF), bm25 (pravdepodobnostný, len doplnok, nepočíta sa medzi dve povinné).
+- `--tf`: raw `tf`, log `1 + log(tf)`.
+- `--norm`: none `1`, len `počet tokenov`, cosine `√(Σ tf²)` (predpočítané pri stavbe), pivot `0,25 + 0,75 × len / avg_len`.
+
+Čo vyšlo: pri dopytoch zo zriedkavých slov („lions in africa") sú všetky metódy rovnaké. Pri bežných slovách v dopyte („native carnivore", „hibernates during winter") je classic najlepší, lebo bežné slovo stiahne k nule; smooth mu nechá váhu 1 a hore pustí dokumenty, kde sa bežné slovo len opakuje. Z normalizácií dostal andulku do top 5 pri „australia parrot popular pet" len kosínus; `len` najviac zvýhodňuje krátke dokumenty. Tabuľky v 1. odovzdaní, sekcie 10 až 12.
 
 ## Bonusy
 
-- `tests/test_parser.py`: 6 stránok so zlatým štandardom + 6 invariantov na 20 stránkach, `uv run pytest` = 126 passed. Testy odhalili, že hmyz nemá v tabuľke Phylum a salamandry Order.
+- `tests/test_parser.py`: 6 stránok so zlatým štandardom + 6 invariantov na 20 stránkach, `uv run pytest` = 137 passed (126 extraktor, 8 vzorce skóre, 3 formát indexu). Testy odhalili, že hmyz nemá v tabuľke Phylum a salamandry Order.
 - tiktoken: 8 519 000 tokenov, v tabuľke vyššie.
