@@ -6,7 +6,7 @@ Run inside the spark container:
 
 from pyspark.sql import SparkSession
 
-SHUFFLE_PARTITIONS = "16"  # default 200 is sized for a cluster; locally it is only overhead
+SHUFFLE_PARTITIONS = "16"
 
 
 def get_spark(app_name: str) -> SparkSession:

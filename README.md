@@ -101,6 +101,24 @@ uv run dev show Panthera_leo
 
 Prints the full parsed record for one document, attributes first, then every text section. The full text lives only in `data/animals.jsonl`; the index stores just the four fields shown in the result line.
 
+## Stage 2: Spark and Wikipedia
+
+Stage 2 reruns the parser as a Spark job, extracts species pages from the English Wikipedia dump and joins them to the ADW records by scientific name. Spark runs in Docker because it needs Java 21; stage 1 stays in `uv`.
+
+```sh
+docker compose build spark
+docker compose up -d spark
+docker compose exec spark spark-submit --driver-memory 3g src/spark/parse_html.py
+docker compose exec spark spark-submit --driver-memory 3g src/spark/wiki_extract.py "data/wiki/dump/*.bz2"
+docker compose exec spark spark-submit --driver-memory 3g src/spark/join.py
+```
+
+- `parse_html.py`: `data/raw/*.html` to `data/spark/animals.parquet`, then compares the result with `data/animals.jsonl` from stage 1 (0 mismatches).
+- `wiki_extract.py`: the dump (`enwiki-20261001-pages-articles`, 71 bz2 files, 24 GB, in `data/wiki/dump/`) to `data/wiki/species.parquet` (pages with a taxobox: title, taxon, status, authority, lead) and `data/wiki/redirects.parquet`. Without the argument it reads only the first dump file, enough for development. The full run takes about 37 minutes on 6 cores.
+- `join.py`: ADW records joined to wiki pages, directly by scientific name and then through redirects, to `data/wiki/joined.parquet`, plus a report: matched count, status agreement, unmatched sample.
+
+The Spark UI is on `localhost:4040` while a job runs. Run one job at a time, the container has a 5 GB memory limit.
+
 ## Extras
 
 ```sh
@@ -128,9 +146,15 @@ src/
     search.py       TF-IDF ranking: 4 IDF variants, 2 TF weights, 4 length norms
   stats.py          corpus statistics
   cli.py            the `dev` entry point
+  spark/
+    session.py      SparkSession factory: local[*], 16 shuffle partitions
+    parse_html.py   stage-1 parser as a Spark job, verified against the JSONL
+    wiki_extract.py Wikipedia dump to species and redirects parquet
+    join.py         ADW x Wikipedia join by scientific name
 tests/
   test_parser.py    extractor tests on crawled pages
   test_search.py    scoring formulas
   test_store.py     index round trip
+docker/             Spark image: apache/spark + pydantic, compose in the root
 docs/               crawler and pipeline diagrams
 ```
