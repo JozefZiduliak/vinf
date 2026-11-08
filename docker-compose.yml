@@ -1,0 +1,16 @@
+services:
+  spark:
+    build: docker/spark  # apache/spark:4.2.1-python3 + pydantic
+    working_dir: /app
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    ports:
+      - "4040:4040"
+    environment:
+      PYSPARK_PYTHON: python3
+      PYTHONPATH: /app
+      PATH: /opt/spark/bin:/opt/java/openjdk/bin:/usr/local/bin:/usr/bin:/bin
+    mem_limit: 5g
+    cpus: 6
+    command: sleep infinity

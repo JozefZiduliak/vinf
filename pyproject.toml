@@ -28,6 +28,7 @@ only-include = ["src/cli.py", "src/crawler.py", "src/parser.py", "src/stats.py",
 
 [dependency-groups]
 dev = [
+    "pyspark==4.2.1",
     "pytest>=9.1.1",
     "ruff>=0.16.10",
 ]
