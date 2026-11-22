@@ -119,6 +119,26 @@ docker compose exec spark spark-submit --driver-memory 3g src/spark/join.py
 
 The Spark UI is on `localhost:4040` while a job runs. Run one job at a time, the container has a 5 GB memory limit.
 
+## Stage 3: Lucene
+
+PyLucene runs in its own container (`coady/pylucene:10.0`). Input is one JSON
+file exported from Spark, output is the index in `data/lucene/index/`.
+
+```
+docker compose exec spark spark-submit --driver-memory 2g src/spark/export_lucene.py
+docker compose up -d lucene
+docker compose exec lucene python3 src/lucene/build_index.py
+docker compose exec lucene python3 src/lucene/search.py "lions in africa"
+docker compose exec lucene python3 src/lucene/search.py "diet:carnivore AND status:EN"
+docker compose exec lucene python3 src/lucene/search.py '"tropical rainforest"'
+docker compose exec lucene python3 src/lucene/search.py "cheeta~1"
+docker compose exec lucene python3 src/lucene/search.py "family:Felidae" --year 1750-1800
+```
+
+Exact fields (`status`, `family`, `diet`, ...) take `field:value`, bare words
+search the full text. `--year LO-HI` adds a range on the description year.
+The old index is still `uv run dev search "<query>" --stem`.
+
 ## Extras
 
 ```sh

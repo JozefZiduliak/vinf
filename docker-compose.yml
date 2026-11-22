@@ -14,3 +14,13 @@ services:
     mem_limit: 5g
     cpus: 6
     command: sleep infinity
+
+  lucene:
+    image: coady/pylucene:10.0
+    working_dir: /app
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    environment:
+      PYTHONPATH: /app
+    command: sleep infinity
