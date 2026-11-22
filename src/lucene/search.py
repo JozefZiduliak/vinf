@@ -53,6 +53,7 @@ def build_query(text: str, year: str | None):
     if year is None:
         return query
     lo, hi = (int(y) for y in year.split("-"))
+    lo, hi = min(lo, hi), max(lo, hi)  # "1800-1750" would be an empty interval
     both = BooleanQuery.Builder()
     both.add(query, BooleanClause.Occur.MUST)
     both.add(IntPoint.newRangeQuery("year", lo, hi), BooleanClause.Occur.MUST)
